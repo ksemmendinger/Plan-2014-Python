@@ -3,22 +3,11 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+from glob import glob
 from datetime import datetime
 
 args = sys.argv
-# args = ["", "mac_loc", "climate_scenarios", "historic", "full", "sq", "1", "0"]
-
-# if args[1] == "mac_loc":
-#     wd = "/Users/kylasemmendinger/Box/Plan_2014/simulation_model"
-# elif args[1] == "mac_ext":
-#     wd = "/Volumes/Seagate Backup Plus Drive/plan_2014"
-# elif args[1] == "linux":
-#     wd = "/home/kyla/Desktop"
-# elif args[1] == "hopper":
-#     wd = "/home/fs02/pmr82_0001/kts48/plan_2014"
-
-# # set working directory
-# os.chdir(wd)
+# args = ["", "stochastic", "stochastic", "full", "sq", "1", "0"]
 
 expName = args[1]
 v = args[2]
@@ -27,16 +16,18 @@ skill = args[4]
 nseeds = int(args[5])
 startf = int(args[6])
 
-# import plan 2014 functions
-# sys.path.insert(1, os.getcwd() + "/scripts/functions/")
-# import limits
-# from stlawLevels import stlawLevels
-
-filelist = os.listdir("../input/" + expName + "/hydro")
+# get list of files to simulate
+# filelist = os.listdir("../input/" + expName + "/hydro")
+path = "../input/" + expName + "/hydro/*.txt"
+filelist = glob(path)
 
 for f in range(startf, len(filelist)):
 
-    fn = filelist[f].split(".txt")[0]
+    # get file name
+    fn = filelist[f].split(".txt")[0].split('/')[-1]
+    print(fn)
+
+    # make output directory
     os.makedirs(
         "../output/" + expName + "/" + season + "/" + str(skill) + "/" + fn, exist_ok=True
     )
@@ -48,10 +39,10 @@ for f in range(startf, len(filelist)):
         startTime = datetime.now()
 
         # load input hydrologic data
-        data = pd.read_table("../input/" + expName + "/hydro/" + filelist[f])
+        data = pd.read_table(filelist[f])
 
         # load short term forecast predictions (status quo)
-        sf = pd.read_table("../input/" + expName + "/short_forecast/sq/" + filelist[f])
+        sf = pd.read_table("../input/" + expName + "/short_forecast/sq/" + fn + ".txt")
 
         # load long term forecast predictions (status quo)
         lf = pd.read_table(
@@ -76,7 +67,7 @@ for f in range(startf, len(filelist)):
 
         # load spin up data for first year in the century simulation
         if expName != "climate_scenarios":
-            spinup = pd.read_table("../input/" + expName + "/spin_up/" + filelist[f])
+            spinup = pd.read_table("../input/" + expName + "/spin_up/" + fn + ".txt")
             data.loc[:47, ["ontLevel", "ontFlow"]] = spinup
 
         else:
@@ -201,6 +192,10 @@ for f in range(startf, len(filelist)):
                 slonFlow = data["slonFlow_QM1"][t]
             elif foreInd == 1:
                 slonFlow = data["stlouisontOut"][t]
+
+            # needed for CO limit calculation
+            stfrancoisFlow = data["lacstfrancoisFlow"][t]
+            beauharnoisMaxFlow = data["beauharnoisMaxFlow"][t]
 
             # true nts
             obsontNTS = data["ontNTS"][t]
@@ -656,6 +651,32 @@ for f in range(startf, len(filelist)):
 
             # -----------------------------------------------------------------------------
             #
+            # C limit - coteau structure limit
+            #
+            # check to see if plan release needs to be reduced to limit flows through the hq
+            # coteau control structure. assumes perfect forecast of Lake St. Francis local
+            # inflows and maximum capacity of Beauharnois
+            #
+            # -----------------------------------------------------------------------------
+
+            coteauFlow = (ontFlow * 10) + stfrancoisFlow - beauharnoisMaxFlow
+
+            if iceInd == 1 or iceIndPrev == 2:
+                cLimFlow = 2500
+            else:
+                cLimFlow = 4000
+
+            if coteauFlow > cLimFlow:
+                cFlow = ((ontFlow * 10) - (coteauFlow - cLimFlow)) / 10
+                cFlow = round(cFlow, 1)
+
+                ontRegime = "CO"
+                ontFlow = cFlow
+                dif1 = round((sfSupplyNTS[0] / 10 - ontFlow) / conv, 6)
+                ontLevel = ontLevelStart + dif1
+
+            # -----------------------------------------------------------------------------
+            #
             # F limit - downstream flooding
             #
             # f-limit levels check. calculate lac st. louis flow at levels at pt. claire
@@ -704,9 +725,6 @@ for f in range(startf, len(filelist)):
             ontLevel = round(ontLevelStart + dif2, 2)
 
             # save ontario output for next iteration
-            # data.at[t, "ontLevel"] = ontLevel
-            # data.at[t, "ontFlow"] = ontFlow
-            # data.at[t, "flowRegime"] = ontRegime
             data["ontLevel"][t] = ontLevel
             data["ontFlow"][t] = ontFlow
             data["flowRegime"][t] = ontRegime
