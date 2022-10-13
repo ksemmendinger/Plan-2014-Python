@@ -24,3 +24,11 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# files with large directories
+objective_functions/output/climate_scenarios/*
+objective_functions/output/stochastic/*
+simulation_model/input/climate_scenarios/*
+simulation_model/input/stochastic/*
+simulation_model/output/climate_scenarios/*
+simulation_model/output/stochastic/*
