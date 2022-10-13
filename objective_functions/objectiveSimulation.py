@@ -7,7 +7,7 @@ from glob import glob
 from datetime import datetime
 
 args = sys.argv
-# args = ["", "mac_loc", "climate_scenarios", "historic", "full", "sq", "1"]
+# args = ["", "mac_loc", "climate_scenarios", "full", "sq", "1"]
 
 # set working directory
 # if args[1] == "mac_loc":
@@ -15,10 +15,9 @@ args = sys.argv
 # os.chdir(wd)
 
 expName = args[1]
-v = args[2]
-season = args[3]
-skill = args[4]
-nseeds = int(args[5])
+season = args[2]
+skill = args[3]
+nseeds = int(args[4])
 
 # import objective functions
 import objectiveFunctions
