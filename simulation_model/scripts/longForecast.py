@@ -10,13 +10,12 @@ import pandas as pd
 # from datetime import datetime
 
 args = sys.argv
-# args = ["", "climate_scenarios", "historic", "full", "sq", "1"]
+# args = ["", "climate_scenarios", "sq", "full", "1"]
 
 expName = args[1]
-ver = args[2]
+skill = args[2]
 season = args[3]
-skill = args[4]
-nseeds = int(args[5])
+nseeds = int(args[4])
 # startcent = int(args[7])
 
 # if season == "full":
