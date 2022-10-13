@@ -2,25 +2,13 @@
 import os
 import sys
 import pandas as pd
+from glob import glob
 
 # import numpy as np
 # from datetime import datetime
 
 args = sys.argv
-# args = ["", "mac_loc", "climate_scenarios", "historic", "full", "sq", "1", "0"]
 # args = ["", "mac_loc", "historic", "sq"]
-
-# if args[1] == "mac_loc":
-#     wd = "/Users/kylasemmendinger/Box/Plan_2014/simulation_model"
-# elif args[1] == "mac_ext":
-#     wd = "/Volumes/Seagate Backup Plus Drive/plan_2014"
-# elif args[1] == "linux":
-#     wd = "/home/kyla/Desktop"
-# elif args[1] == "hopper":
-#     wd = "/home/fs02/pmr82_0001/kts48/plan_2014"
-
-# set working directory
-# os.chdir(wd)
 
 expName = args[1]
 skill = args[2]
@@ -293,14 +281,17 @@ def shortforecast_slonFlow(slonFlow, qm):
 
 
 # run through input hydrologic files
-filelist = os.listdir("../input/" + expName + "/hydro")
+# filelist = os.listdir("../input/" + expName + "/hydro")
+path = "../input/" + expName + "/hydro/*.txt"
+filelist = glob(path)
 
 for i in range(len(filelist)):
 
-    print(filelist[i])
+    fn = filelist[i].split(".txt")[0].split('/')[-1]
+    print(fn)
 
     # load input data
-    data = pd.read_table("../input/" + expName + "/hydro/" + filelist[i])
+    data = pd.read_table(filelist[i])
 
     # initialize lists for output
     sf_nbs = data.loc[:, ["Sim", "Year", "Month", "QM"]]
@@ -383,7 +374,7 @@ for i in range(len(filelist)):
         + "/short_forecast/"
         + skill
         + "/"
-        + filelist[i].split(".txt")[0]
+        + fn
         + ".txt",
         index=False,
         sep="\t",

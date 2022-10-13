@@ -1,6 +1,7 @@
 # import libraries
 import os
 import sys
+from glob import glob
 from statsmodels.tsa.arima.model import ARIMA
 from scipy import stats, special
 import numpy as np
@@ -9,10 +10,7 @@ import pandas as pd
 # from datetime import datetime
 
 args = sys.argv
-# args = ["", "mac_loc", "climate_scenarios", "historic", "full", "sq", "1"]
-
-# set working directory
-# os.chdir(wd)
+# args = ["", "climate_scenarios", "historic", "full", "sq", "1"]
 
 expName = args[1]
 ver = args[2]
@@ -162,11 +160,13 @@ def synthetic_forecast_generator(x, varscale, season):
 
 
 # run through input hydrologic files
-filelist = os.listdir("../input/" + expName + "/hydro")
+# filelist = os.listdir("../input/" + expName + "/hydro")
+path = "../input/" + expName + "/hydro/*.txt"
+filelist = glob(path)
 
 for i in range(len(filelist)):
 
-    fn = filelist[i].split(".txt")[0]
+    fn = filelist[i].split(".txt")[0].split('/')[-1]
     print(fn)
 
     os.makedirs(
@@ -182,7 +182,7 @@ for i in range(len(filelist)):
     )
 
     # load input data
-    data = pd.read_table("../input/" + expName + "/hydro/" + filelist[i])
+    data = pd.read_table(filelist[i])
     data = data.loc[:, ["Sim", "QM", "ontNTS"]]
     data.columns = ["sm", "qm", "obsNTS"]
 
@@ -196,11 +196,10 @@ for i in range(len(filelist)):
     for p in range(nseeds):
 
         # -----------------------------------------------------------------------------
-        # status quo forecast
+        # status quo (ar) forecast
         # -----------------------------------------------------------------------------
 
         if skill != 0:
-
             # average previous annual nts --> forecast of annual average nts
             statusquo = data.copy()
             statusquo["pavgNTS"] = statusquo.obsNTS.rolling(
