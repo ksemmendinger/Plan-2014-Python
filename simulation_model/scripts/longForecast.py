@@ -7,8 +7,6 @@ from scipy import stats, special
 import numpy as np
 import pandas as pd
 
-# from datetime import datetime
-
 args = sys.argv
 # args = ["", "climate_scenarios", "sq", "full", "1"]
 
