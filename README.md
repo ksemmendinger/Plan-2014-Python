@@ -186,16 +186,14 @@ This repo contains code for the regulation model (water levels and flows) and im
 
 This repo also contains impact models for coastal impacts (upstream and downstream), commercial navigation costs, hydropower production, meadow marsh acreage, and recreational boating costs. The impact models take in the direct output from the Plan 2014 simulation model. To run the objective functions, specify the following:
 
-    1. Input directory name
-    2. Version of the code to run (historic or stochastic)
-    3. Season of long-forecast skill
-    4. Long-forecast skill
-    5. Number of seeds (from long-forecast generator)
-    
-    <br>
+1. Input directory name
+2. Version of the code to run (historic or stochastic)
+3. Season of long-forecast skill
+4. Long-forecast skill
+5. Number of seeds (from long-forecast generator)
 
-    ```
-    python objectiveSimulation.py historic historic full sq 1
-    ```
-    
-    <br>
+<br>
+
+```
+python objectiveSimulation.py historic historic full sq 1
+```
