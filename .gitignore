@@ -6,6 +6,8 @@ __pycache__/
 # mac files
 .DS_Store
 
+.Rhistory
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
