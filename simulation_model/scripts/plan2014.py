@@ -3,22 +3,11 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+from glob import glob
 from datetime import datetime
 
 args = sys.argv
 # args = ["", "climate_scenarios", "historic", "full", "sq", "1", "0"]
-
-# if args[1] == "mac_loc":
-#     wd = "/Users/kylasemmendinger/Box/Plan_2014/simulation_model"
-# elif args[1] == "mac_ext":
-#     wd = "/Volumes/Seagate Backup Plus Drive/plan_2014"
-# elif args[1] == "linux":
-#     wd = "/home/kyla/Desktop"
-# elif args[1] == "hopper":
-#     wd = "/home/fs02/pmr82_0001/kts48/plan_2014"
-
-# # set working directory
-# os.chdir(wd)
 
 expName = args[1]
 v = args[2]
@@ -27,16 +16,15 @@ skill = args[4]
 nseeds = int(args[5])
 startf = int(args[6])
 
-# import plan 2014 functions
-# sys.path.insert(1, os.getcwd() + "/scripts/functions/")
-# import limits
-# from stlawLevels import stlawLevels
-
-filelist = os.listdir("../input/" + expName + "/hydro")
+# filelist = os.listdir("../input/" + expName + "/hydro")
+path = "../input/" + expName + "/hydro/*.txt"
+filelist = glob(path)
 
 for f in range(startf, len(filelist)):
 
-    fn = filelist[f].split(".txt")[0]
+    fn = filelist[f].split(".txt")[0].split('/')[-1]
+    # print(fn)
+
     os.makedirs(
         "../output/" + expName + "/" + season + "/" + str(skill) + "/" + fn, exist_ok=True
     )
@@ -48,10 +36,10 @@ for f in range(startf, len(filelist)):
         startTime = datetime.now()
 
         # load input hydrologic data
-        data = pd.read_table("../input/" + expName + "/hydro/" + filelist[f])
+        data = pd.read_table(filelist[f])
 
         # load short term forecast predictions (status quo)
-        sf = pd.read_table("../input/" + expName + "/short_forecast/sq/" + filelist[f])
+        sf = pd.read_table("../input/" + expName + "/short_forecast/sq/" + fn + ".txt")
 
         # load long term forecast predictions (status quo)
         lf = pd.read_table(

@@ -7,12 +7,7 @@ from glob import glob
 from datetime import datetime
 
 args = sys.argv
-# args = ["", "mac_loc", "climate_scenarios", "full", "sq", "1"]
-
-# set working directory
-# if args[1] == "mac_loc":
-#     wd = "/Users/kylasemmendinger/Box/Plan_2014/objective_functions/assessment"
-# os.chdir(wd)
+# args = ["", "climate_scenarios", "full", "sq", "1"]
 
 expName = args[1]
 season = args[2]
