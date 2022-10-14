@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime
 
 args = sys.argv
-# args = ["", "mac_loc", "climate_scenarios", "historic", "full", "sq", "1", "0"]
+# args = ["", "climate_scenarios", "historic", "full", "sq", "1", "0"]
 
 # if args[1] == "mac_loc":
 #     wd = "/Users/kylasemmendinger/Box/Plan_2014/simulation_model"

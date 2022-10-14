@@ -8,7 +8,7 @@ from glob import glob
 # from datetime import datetime
 
 args = sys.argv
-# args = ["", "mac_loc", "historic", "sq"]
+# args = ["", "historic", "sq"]
 
 expName = args[1]
 skill = args[2]
