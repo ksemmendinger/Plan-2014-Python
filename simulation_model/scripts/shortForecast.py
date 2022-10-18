@@ -287,7 +287,7 @@ filelist = glob(path)
 
 for i in range(len(filelist)):
 
-    fn = filelist[i].split(".txt")[0].split('/')[-1]
+    fn = filelist[i].split(".txt")[0].split("/")[-1]
     print(fn)
 
     # load input data
@@ -369,13 +369,7 @@ for i in range(len(filelist)):
     )
 
     shortForecast.to_csv(
-        "../input/"
-        + expName
-        + "/short_forecast/"
-        + skill
-        + "/"
-        + fn
-        + ".txt",
+        "../input/" + expName + "/short_forecast/" + skill + "/" + fn + ".txt",
         index=False,
         sep="\t",
     )
