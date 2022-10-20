@@ -1,10 +1,134 @@
 # import libraries
+from operator import mod
 import os
+from select import kevent
 import sys
+import math
 import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime
+
+
+def engRound(value, k):
+
+    # # FROM R SCRIPT
+    # if math.isnan(value) == False:
+
+    #     xchar = str(value)
+
+    #     # determine the location of the decimal
+    #     tmp = [x for x in xchar]
+
+    #     if any(x in tmp for x in ".") == False:
+    #         xchar = str(value) + ".0"
+    #         decloc = int([i for i in range(len(xchar)) if xchar[i] == "."][0])
+    #     else:
+    #         xchar = str(value)
+    #         decloc = int([i for i in range(len(xchar)) if xchar[i] == "."][0])
+
+    #     if k > 0:
+    #         roundloc = decloc + k
+    #     if k == 0:
+    #         roundloc = decloc - 1
+    #     if k < 0:
+    #         roundloc = decloc - 1 + k
+
+    #     nextloc = roundloc + 1
+
+    #     if xchar[nextloc] == ".":
+    #         nextloc = nextloc + 1
+
+    #     if roundloc >= len(xchar) - 1:
+    #         rounded = float(xchar)
+
+    #     else:
+    #         charlast = xchar[len(xchar) - 1]
+
+    #         # if the number has only zeros after the rounding location, then it is already rounded
+    #         if float(xchar[nextloc : len(xchar)]) == 0:
+    #             rounded = value
+    #         else:
+    #             if charlast != "5":
+    #                 rounded = round(value, k)
+    #             else:
+    #                 if value == 5:
+    #                     rounded = 0
+    #                 else:
+    #                     if nextloc == len(xchar) - 1:
+
+    #                         # rounded digit is even
+    #                         if int(xchar[roundloc]) % 2 == 0:
+    #                             # trick to round down by replacing last digit with a 3
+    #                             trickval = float(xchar[0 : (len(xchar) - 1)] + "3")
+    #                             rounded = round(trickval, k)
+
+    #                         # rounded digit is odd
+    #                         else:
+    #                             # trick to round up
+    #                             trickval = float(xchar[0 : (len(xchar) - 1)] + "9")
+    #                             rounded = round(trickval, k)
+
+    #                     else:
+    #                         if int(xchar[nextloc]) % 2 == 0:
+    #                             trickval = float(xchar[0 : (len(xchar) - 1)] + "3")
+    #                             rounded = round(trickval, k)
+
+    #                         else:
+    #                             trickval = float(xchar[0 : (len(xchar) - 1)] + "9")
+    #                             rounded = round(trickval, k)
+
+    #     answer = rounded
+
+    # else:
+    #     answer = np.nan
+
+    # # FROM INTUITION
+    # if k < 0:
+    #     n = abs(k)
+    # else:
+    #     n = k - 1
+
+    n = k
+    answer = np.round(value, n)
+
+    # # FROM FORTRAN
+    # xval = abs(value)
+
+    # if k > 0:
+    #     n = k - 1
+    # else:
+    #     n = k
+
+    # tens = 10.0 ** n
+    # xx = xval / tens
+
+    # a = len(str(xx))
+    # b = (15 - a) + 1
+
+    # temp = f"{xx:.{b}f}"
+    # ix = int(temp[:10])
+    # jx = int(temp[10:])
+
+    # if jx > 500000:
+    #     add = 1
+    # elif jx < 500000:
+    #     add = 0
+    # else:
+    #     ires = ix % 2
+
+    #     if ires > 0:
+    #         add = 1
+    #     else:
+    #         add = 0
+
+    # answer = (ix + add) * tens
+
+    # if value < 0:
+    #     answer = -answer
+
+    return answer
+
 
 args = sys.argv
 # args = ["", "stochastic", "stochastic", "full", "sq", "1", "0"]
@@ -24,12 +148,13 @@ filelist = glob(path)
 for f in range(startf, len(filelist)):
 
     # get file name
-    fn = filelist[f].split(".txt")[0].split('/')[-1]
+    fn = filelist[f].split(".txt")[0].split("/")[-1]
     print(fn)
 
     # make output directory
     os.makedirs(
-        "../output/" + expName + "/" + season + "/" + str(skill) + "/" + fn, exist_ok=True
+        "../output/" + expName + "/" + season + "/" + str(skill) + "/" + fn,
+        exist_ok=True,
     )
 
     for p in range(nseeds):
@@ -124,7 +249,7 @@ for f in range(startf, len(filelist)):
 
         sim_st = datetime.now()
 
-        for t in range(s, timesteps - 48):
+        for t in range(s, timesteps):
 
             # quarter month
             qm = data["QM"][t]
@@ -257,19 +382,23 @@ for f in range(startf, len(filelist)):
                     # long-term supply forecast varies from average
 
                     # pre-project flows
-                    preproj = slope * (ontLevelStart - adj - 69.474) ** 1.5
+                    preproj = slope * (startLev[k] - adj - 69.474) ** 1.5
 
                     # above average supplies
-                    if lfSupply >= 7011:
+                    if lfSupply >= 7011.0:
 
-                        # set c1 coefficients based on how confident forecast is in wet
-                        if lfInd == 1 and lfCon == 3:
-                            c1 = 260
-                        else:
-                            c1 = 220
+                        # # set c1 coefficients based on how confident forecast is in wet
+                        # if lfInd == 1 and lfCon == 3:
+                        #     c1 = 260
+                        # else:
+                        #     c1 = 220
+                        c1 = 220.0
 
                         # rule curve release
-                        flow = preproj + ((lfSupply - 7011) / (8552 - 7011)) ** 0.9 * c1
+                        flow = (
+                            preproj
+                            + ((lfSupply - 7011.0) / (8552.0 - 7011.0)) ** 0.9 * c1
+                        )
 
                         # set rc flow regime
                         if lfInd == 1 and lfCon == 3:
@@ -278,28 +407,34 @@ for f in range(startf, len(filelist)):
                             sy = "RC1"
 
                     # below average supplies
-                    if lfSupply < 7011:
+                    if lfSupply < 7011.0:
 
                         # set c2 coefficient
-                        c2 = 60
+                        # c2 = 60
+                        c2 = 40.0
 
                         # rule curve release
-                        flow = preproj - ((7011 - lfSupply) / (7011 - 5717)) ** 1.0 * c2
+                        flow = (
+                            preproj
+                            - ((7011.0 - lfSupply) / (7011.0 - 5717.0)) ** 1.0 * c2
+                        )
 
                         # set rc flow regime
                         sy = "RC2"
 
                     # adjust release for any ice
-                    release = round(flow - ice, 0)
+                    # release = round(flow - ice, 0)
+                    release = engRound(flow - ice, 0)
 
                     if abs(release - lastflow) <= epsolon:
                         break
 
                     # calculate resulting water level
-                    wl1 = ontLevelStart + (sfSupplyNTS[k] / 10 - release) / conv
+                    wl1 = startLev[k] + (sfSupplyNTS[k] / 10 - release) / conv
                     wl2 = wl1
-                    wl1 = (ontLevelStart + wl2) * 0.5
-                    wl = round(wl1, 2)
+                    wl1 = (startLev[k] + wl2) * 0.5
+                    # wl = round(wl1, 2)
+                    wl = engRound(wl1, 2)
 
                     # stability check
                     lastflow = release
@@ -308,31 +443,36 @@ for f in range(startf, len(filelist)):
                     if ct == 10:
                         break
 
-                # try to keep ontario level up in dry periods
-                if annavgLevel <= 74.6:
+                # # try to keep ontario level up in dry periods
+                # if annavgLevel <= 74.6:
 
-                    # adjust release
-                    release = release - 20
+                #     # adjust release
+                #     release = release - 20
 
-                    # set flow regime
-                    sy = sy + "-"
+                #     # set flow regime
+                #     sy = sy + "-"
 
                 sfFlow.append(release)
                 sfpreprojFlow.append(preproj)
                 sfRegime.append(sy)
 
                 # compute water level change using forecasted supply and flow
-                dif1 = round((sfSupplyNTS[k] / 10 - sfFlow[k]) / conv, 6)
-                endLev.append(startLev[k] + dif1)
+                dif1 = (sfSupplyNTS[k] / 10 - sfFlow[k]) / conv
+                dif1 = engRound(dif1, 6)
+                endLev1 = startLev[k] + dif1
+                endLev1 = engRound(endLev1, 2)
+                endLev.append(endLev1)
 
                 # update intial conditions
                 if k < 3:
                     startLev.append(endLev[k])
 
             # compute averaged quarter-monthly release
-            ontFlow = round(sum(sfFlow) / nforecasts, 0)
-            dif1 = round((sfSupplyNTS[0] / 10 - ontFlow) / conv, 6)
-            ontLevel = ontLevelStart + dif1
+            ontFlow = sum(sfFlow) / nforecasts
+            ontFlow = engRound(ontFlow, 0)
+            # dif1 = round((sfSupplyNTS[0] / 10 - ontFlow) / conv, 6)
+            # dif1 = round_half_down((sfSupplyNTS[0] / 10 - ontFlow) / conv, 6)
+            # ontLevel = round_half_up(ontLevelStart + dif1, 2)
             ontRegime = sfRegime[0]
 
             # -----------------------------------------------------------------------------
@@ -350,12 +490,12 @@ for f in range(startf, len(filelist)):
             #
             # ---------------------------------------------------------------------------
 
-            if qm >= 32 and flowflag == 1 and ontLevel > 74.80:
+            if qm >= 32 and flowflag == 1 and ontLevelStart > 74.80:
 
                 if qm <= 46:
-                    flowadj = ((ontLevel - 74.80) * conv) / (46 - qm + 1)
+                    flowadj = ((ontLevelStart - 74.80) * conv) / (46 - qm + 1)
                 else:
-                    flowadj = ((ontLevel - 74.80) * conv) / (48 - qm + 1)
+                    flowadj = ((ontLevelStart - 74.80) * conv) / (48 - qm + 1)
 
                 # adjust rule curve flow
                 ontFlow = ontFlow + flowadj
@@ -366,12 +506,17 @@ for f in range(startf, len(filelist)):
                 # adjust rule curve flow
                 ontFlow = round(ontFlow, 0)
 
-                # calculate resulting water level
-                dif1 = round((sfSupplyNTS[0] / 10 - ontFlow) / conv, 6)
-                ontLevel = round(ontLevel + dif1, 2)
+                # # calculate resulting water level
+                # dif1 = round((sfSupplyNTS[0] / 10 - ontFlow) / conv, 6)
+                # ontLevel = round(ontLevel + dif1, 2)
 
                 # adjust rule curve flow regime
                 ontRegime = "R+"
+
+            # compute averaged quarter-monthly level still using forecast
+            # dif1 = round((sfSupplyNTS[0] / 10 - ontFlow) / conv, 6)
+            dif1 = engRound((sfSupplyNTS[0] / 10 - ontFlow) / conv, 6)
+            ontLevel = ontLevelStart + dif1
 
             # -----------------------------------------------------------------------------
             #
@@ -391,7 +536,7 @@ for f in range(startf, len(filelist)):
                 con1 = (kingLevelStart - 62.4) ** 2.2381
                 con2 = ((kingLevelStart - 71.80) / data["lsdamR"][t]) ** 0.387
                 qx = (22.9896 * con1 * con2) * 0.1
-                iLimFlow = round(qx, 0)
+                iLimFlow = engRound(qx, 0)
 
             else:
                 iLimFlow = 0
@@ -458,7 +603,7 @@ for f in range(startf, len(filelist)):
                 lFlow = lFlow2
                 lRegime = "LC"
 
-            lLimFlow = round(lFlow, 0)
+            lLimFlow = engRound(lFlow, 0)
 
             # -----------------------------------------------------------------------------
             #
@@ -474,27 +619,32 @@ for f in range(startf, len(filelist)):
             # stochastic version of M limit to prevent too low of flows
             if v == "stochastic":
 
-                # m-limit by quarter-month
-                qmLimFlow = np.hstack(
-                    [
-                        [595] * 4,
-                        [586] * 4,
-                        [578] * 4,
-                        [532] * 8,
-                        [538] * 4,
-                        [547] * 12,
-                        [561] * 8,
-                        [595] * 4,
-                    ]
-                )
+                if ontLevel <= 74.15:
+                    mFlow = 0.0
 
-                mFlow = qmLimFlow[qm - 1]
+                else:
 
-                if ontLevel < 74.20:
-                    mq = 770 - 2 * (slonFlow * 0.1)
+                    # m-limit by quarter-month
+                    qmLimFlow = np.hstack(
+                        [
+                            [595] * 4,
+                            [586] * 4,
+                            [578] * 4,
+                            [532] * 8,
+                            [538] * 4,
+                            [547] * 12,
+                            [561] * 8,
+                            [595] * 4,
+                        ]
+                    )
 
-                    if mq < mFlow:
-                        mFlow = mq
+                    mFlow = qmLimFlow[qm - 1]
+
+                    if ontLevel < 74.20:
+                        mq = 770 - 2 * (slonFlow * 0.1)
+
+                        if mq < mFlow:
+                            mFlow = mq
 
             # historic version of M limit to prevent too low of flows
             elif v == "historic":
@@ -527,7 +677,7 @@ for f in range(startf, len(filelist)):
 
                 mFlow = mq
 
-            mLimFlow = round(mFlow, 0)
+            mLimFlow = engRound(mFlow, 0)
             mRegime = "M"
 
             # -----------------------------------------------------------------------------
@@ -589,7 +739,7 @@ for f in range(startf, len(filelist)):
                     jmin = 0
                     jRegime = ontRegime
 
-            jLimFlow = round(jFlow, 0)
+            jLimFlow = engRound(jFlow, 0)
 
             # -----------------------------------------------------------------------------
             # limit comparison
@@ -668,11 +818,11 @@ for f in range(startf, len(filelist)):
 
             if coteauFlow > cLimFlow:
                 cFlow = ((ontFlow * 10) - (coteauFlow - cLimFlow)) / 10
-                cFlow = round(cFlow, 1)
+                cFlow = engRound(cFlow, 1)
 
                 ontRegime = "CO"
                 ontFlow = cFlow
-                dif1 = round((sfSupplyNTS[0] / 10 - ontFlow) / conv, 6)
+                dif1 = engRound((sfSupplyNTS[0] / 10 - ontFlow) / conv, 6)
                 ontLevel = ontLevelStart + dif1
 
             # -----------------------------------------------------------------------------
@@ -687,7 +837,7 @@ for f in range(startf, len(filelist)):
             stlouisFlow = ontFlow * 10 + slonFlow
 
             # calculate pointe claire level
-            ptclaireLevel = round(
+            ptclaireLevel = engRound(
                 16.57 + ((data["ptclaireR"][t] * stlouisFlow / 604) ** 0.58), 2
             )
 
@@ -710,7 +860,7 @@ for f in range(startf, len(filelist)):
 
             # estimate flow required to maintain pointe claire below action level
             if ptclaireLevel > actionlev:
-                flimFlow = round((c1 / data["ptclaireR"][t] - slonFlow) / 10, 0)
+                flimFlow = engRound((c1 / data["ptclaireR"][t] - slonFlow) / 10, 0)
 
                 if flimFlow < ontFlow:
                     ontFlow = flimFlow
@@ -721,8 +871,8 @@ for f in range(startf, len(filelist)):
             # -------------------------------------------------------------------------
 
             # calculate final ontario water level after limits applied, this is true level using observed nts
-            dif2 = round(((obsontNTS / 10) - ontFlow) / conv, 6)
-            ontLevel = round(ontLevelStart + dif2, 2)
+            dif2 = engRound(((obsontNTS / 10) - ontFlow) / conv, 6)
+            ontLevel = engRound(ontLevelStart + dif2, 2)
 
             # save ontario output for next iteration
             data["ontLevel"][t] = ontLevel
@@ -738,7 +888,7 @@ for f in range(startf, len(filelist)):
             difLev = kingstonLevel - 62.40
 
             # ogdensburg
-            ogdensburgLevel = round(
+            ogdensburgLevel = engRound(
                 kingstonLevel
                 - data["ogdensburgR"][t]
                 * pow(ontFlow / (6.328 * pow(difLev, 2.0925)), (1 / 0.4103)),
@@ -746,17 +896,17 @@ for f in range(startf, len(filelist)):
             )
 
             # alexandria bay
-            alexbayLevel = round(
+            alexbayLevel = engRound(
                 kingstonLevel - 0.39 * (kingstonLevel - ogdensburgLevel), 2
             )
 
             # brockville
-            brockvilleLevel = round(
+            brockvilleLevel = engRound(
                 kingstonLevel - 0.815 * (kingstonLevel - ogdensburgLevel), 2
             )
 
             # cardinal
-            cardinalLevel = round(
+            cardinalLevel = engRound(
                 kingstonLevel
                 - data["cardinalR"][t]
                 * pow(ontFlow / (1.94908 * pow(difLev, 2.3981)), (1 / 0.4169)),
@@ -764,7 +914,7 @@ for f in range(startf, len(filelist)):
             )
 
             # iroquois headwaters
-            iroquoishwLevel = round(
+            iroquoishwLevel = engRound(
                 kingstonLevel
                 - data["iroquoishwR"][t]
                 * pow(ontFlow / (2.36495 * pow(difLev, 2.2886)), (1 / 0.4158)),
@@ -772,7 +922,7 @@ for f in range(startf, len(filelist)):
             )
 
             # saunders headwaters
-            saundershwLevel1 = round(
+            saundershwLevel1 = engRound(
                 kingstonLevel
                 - (
                     data["saundershwR"][t]
@@ -790,14 +940,14 @@ for f in range(startf, len(filelist)):
                 saundershwLevel = saundershwLevel1
 
             # iroquois tailwaters (dependent saunders headwaters level)
-            iroquoistwLevel1 = round(
+            iroquoistwLevel1 = engRound(
                 kingstonLevel
                 - data["iroquoistwR"][t]
                 * pow(ontFlow / (2.42291 * pow(difLev, 2.2721)), (1 / 0.4118)),
                 2,
             )
 
-            iroquoistwLevel2 = round(
+            iroquoistwLevel2 = engRound(
                 73.78 + pow((ontFlow * 10), 1.841) / pow((73.78 - 55), 5.891), 2
             )
 
@@ -807,7 +957,7 @@ for f in range(startf, len(filelist)):
                 iroquoistwLevel = iroquoistwLevel1
 
             # morrisburg (dependent saunders headwaters level)
-            morrisburgLevel1 = round(
+            morrisburgLevel1 = engRound(
                 kingstonLevel
                 - (
                     data["morrisburgR"][t]
@@ -816,7 +966,7 @@ for f in range(startf, len(filelist)):
                 2,
             )
 
-            morrisburgLevel2 = round(
+            morrisburgLevel2 = engRound(
                 73.78 + 6.799 * pow((ontFlow * 10), 1.913) / 811896440.84868, 2
             )
 
@@ -826,7 +976,7 @@ for f in range(startf, len(filelist)):
                 morrisburgLevel = morrisburgLevel1
 
             # long sault (dependent saunders headwaters level)
-            longsaultLevel1 = round(
+            longsaultLevel1 = engRound(
                 kingstonLevel
                 - (
                     data["lsdamR"][t]
@@ -835,33 +985,33 @@ for f in range(startf, len(filelist)):
                 2,
             )
 
-            longsaultLevel2 = round(
+            longsaultLevel2 = engRound(
                 73.78 + 1408000 * pow((ontFlow * 10), 2.188) / 12501578154791700, 2
             )
 
             if saundershwLevel == 73.783:
-                longsaultLevel = round(longsaultLevel2, 2)
+                longsaultLevel = engRound(longsaultLevel2, 2)
             else:
                 longsaultLevel = longsaultLevel1
 
             # saunders tailwaters
-            saunderstwLevel = round(
+            saunderstwLevel = engRound(
                 44.50 + 0.006338 * pow((data["saunderstwR"][t] * ontFlow * 10), 0.7158),
                 2,
             )
 
             # cornwall
-            cornwallLevel = round(
+            cornwallLevel = engRound(
                 45.00 + 0.0756 * pow((data["cornwallR"][t] * ontFlow * 10), 0.364), 2
             )
 
             # summerstown
-            summerstownLevel = round(
+            summerstownLevel = engRound(
                 46.10 + 0.0109 * pow((data["summerstownR"][t] * ontFlow * 10), 0.451), 2
             )
 
             # pointe-claire (lac st. louis)
-            ptclaireLevel = round(
+            ptclaireLevel = engRound(
                 16.57 + pow((data["ptclaireR"][t] * stlouisFlow / 60.4), 0.58), 2
             )
 
@@ -869,28 +1019,28 @@ for f in range(startf, len(filelist)):
             lerybeauharnoisLevel = ptclaireLevel
 
             # jetty 1 (montreal harbor)
-            jetty1Level = round((ptclaireLevel * 1.657) + (-28.782), 2)
+            jetty1Level = engRound((ptclaireLevel * 1.657) + (-28.782), 2)
 
             # st. lambert
-            stlambertLevel = round((ptclaireLevel * 1.583) + (-27.471), 2)
+            stlambertLevel = engRound((ptclaireLevel * 1.583) + (-27.471), 2)
 
             # varennes
-            varennesLevel = round((ptclaireLevel * 1.535) + (-26.943), 2)
+            varennesLevel = engRound((ptclaireLevel * 1.535) + (-26.943), 2)
 
             # sorel
-            sorelLevel = round((ptclaireLevel * 1.337) + (-23.616), 2)
+            sorelLevel = engRound((ptclaireLevel * 1.337) + (-23.616), 2)
 
             # lac st. pierre
-            lacstpierreLevel = round((ptclaireLevel * 1.366) + (-24.620), 2)
+            lacstpierreLevel = engRound((ptclaireLevel * 1.366) + (-24.620), 2)
 
             # maskinonge (uses lac st pierre level)
             maskinongeLevel = lacstpierreLevel
 
             # troisrivieres
-            troisrivieresLevel = round((ptclaireLevel * 1.337) + (-24.425), 2)
+            troisrivieresLevel = engRound((ptclaireLevel * 1.337) + (-24.425), 2)
 
             # batiscan
-            batiscanLevel = round((ptclaireLevel * 1.105) + (-20.269), 2)
+            batiscanLevel = engRound((ptclaireLevel * 1.105) + (-20.269), 2)
 
             data["kingstonLevel"][t] = kingstonLevel
             data["alexbayLevel"][t] = alexbayLevel

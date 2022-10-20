@@ -22,11 +22,12 @@ filelist = glob(path)
 
 for f in range(startf, len(filelist)):
 
-    fn = filelist[f].split(".txt")[0].split('/')[-1]
+    fn = filelist[f].split(".txt")[0].split("/")[-1]
     # print(fn)
 
     os.makedirs(
-        "../output/" + expName + "/" + season + "/" + str(skill) + "/" + fn, exist_ok=True
+        "../output/" + expName + "/" + season + "/" + str(skill) + "/" + fn,
+        exist_ok=True,
     )
 
     for p in range(nseeds):
@@ -121,7 +122,7 @@ for f in range(startf, len(filelist)):
 
         sim_st = datetime.now()
 
-        for t in range(s, timesteps - 48):
+        for t in range(s, timesteps):
 
             # quarter month
             qm = data["QM"][t]
