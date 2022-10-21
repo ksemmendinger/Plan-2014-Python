@@ -1,7 +1,5 @@
 # import libraries
-from operator import mod
 import os
-from select import kevent
 import sys
 import math
 import numpy as np
@@ -83,11 +81,11 @@ def engRound(value, k):
     # else:
     #     answer = np.nan
 
-    # # FROM INTUITION
-    # if k < 0:
-    #     n = abs(k)
-    # else:
-    #     n = k - 1
+    # FROM INTUITION
+    if k < 0:
+        n = abs(k)
+    else:
+        n = k - 1
 
     n = k
     answer = np.round(value, n)
@@ -107,8 +105,8 @@ def engRound(value, k):
     # b = (15 - a) + 1
 
     # temp = f"{xx:.{b}f}"
-    # ix = int(temp[:10])
-    # jx = int(temp[10:])
+    # ix = float(temp[:10])
+    # jx = float(temp[10:])
 
     # if jx > 500000:
     #     add = 1
@@ -125,7 +123,7 @@ def engRound(value, k):
     # answer = (ix + add) * tens
 
     # if value < 0:
-    #     answer = -answer
+    #     answer = - answer
 
     return answer
 
