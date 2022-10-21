@@ -36,6 +36,21 @@ def engRound(value, k):
 
 def rcSimulation(data, v, *vars):
 
+    # take in new decision variables
+    dv = vars
+    dv_ca = dv[0]
+    dv_cac = dv[1]
+    dv_cb = dv[2]
+    dv_pa = dv[3]
+    dv_pb = dv[4]
+    dv_50 = dv[5]
+    dv_99 = dv[6]
+    dv_t = dv[7]
+    dv_max = dv[8]
+    dv_min = dv[9]
+    dv_w = dv[10]
+    dv_d = dv[11]
+
     # initialize columns for output
     data["flowRegime"] = str(np.nan)
     data["stlouisFlow"] = np.nan
@@ -131,8 +146,64 @@ def rcSimulation(data, v, *vars):
 
         # ontario basin supply
         lfSupply = data["forNTS"][t]
-        lfCon = data["confidence"][t]
-        lfInd = data["indicator"][t]
+        # lfCon = data["confidence"][t]
+        # lfInd = data["indicator"][t]
+
+        # -------------------------------------------------------------------------
+        # long forecast generator
+        # -------------------------------------------------------------------------
+
+        # upper and lower limits based on antecedent conditions
+        up99limit = lfSupply + dv_99
+        up50limit = lfSupply + dv_50
+        low99limit = lfSupply - dv_99
+        low50limit = lfSupply - dv_50
+
+        # conditions for wet and dry indicators
+        dry = dv_d
+        wet = dv_w
+
+        # define indicator of wet (1), dry (-1), or neither (0) for supply
+        if lfSupply > wet:
+            lfInd = 1
+        elif lfSupply >= dry and lfSupply <= wet:
+            lfInd = 0
+        else:
+            lfInd = -1
+
+        # compute the confidence level
+        if lfInd == 1:
+            if low99limit >= wet:
+                lfCon = 3
+            elif low50limit >= wet:
+                lfCon = 2
+            elif low50limit < wet:
+                lfCon = 1
+            else:
+                lfCon = np.nan
+
+        if lfInd == 0:
+            if low99limit >= dry and up99limit <= wet:
+                lfCon = 3
+            elif low50limit >= dry and up50limit <= wet:
+                lfCon = 2
+            elif low50limit < dry or up50limit > wet:
+                lfCon = 1
+            else:
+                lfCon = np.nan
+
+        if lfInd == -1:
+            if up99limit <= dry:
+                lfCon = 3
+            elif up50limit <= dry:
+                lfCon = 2
+            elif up50limit > dry:
+                lfCon = 1
+            else:
+                lfCon = np.nan
+
+        data["indicator"][t] = lfInd
+        data["confidence"][t] = lfCon
 
         # -------------------------------------------------------------------------
         # state indicators
@@ -216,22 +287,19 @@ def rcSimulation(data, v, *vars):
                 # long-term supply forecast varies from average
 
                 # pre-project flows
-                preproj = slope * (startLev[k] - adj - 69.474) ** 1.5
+                preproj = slope * (ontLevelStart - adj - 69.474) ** 1.5
 
                 # above average supplies
-                if lfSupply >= 7011.0:
+                if lfSupply >= dv_t:
 
-                    # # set c1 coefficients based on how confident forecast is in wet
-                    # if lfInd == 1 and lfCon == 3:
-                    #     c1 = 260
-                    # else:
-                    #     c1 = 220
-                    c1 = 220.0
+                    # set c1 coefficients based on how confident forecast is in wet
+                    if lfInd == 1 and lfCon == 3:
+                        c1 = dv_cac
+                    else:
+                        c1 = dv_ca
 
                     # rule curve release
-                    flow = (
-                        preproj + ((lfSupply - 7011.0) / (8552.0 - 7011.0)) ** 0.9 * c1
-                    )
+                    flow = preproj + ((lfSupply - dv_t) / dv_max) ** dv_pa * c1
 
                     # set rc flow regime
                     if lfInd == 1 and lfCon == 3:
@@ -240,33 +308,28 @@ def rcSimulation(data, v, *vars):
                         sy = "RC1"
 
                 # below average supplies
-                if lfSupply < 7011.0:
+                if lfSupply < dv_t:
 
                     # set c2 coefficient
-                    # c2 = 60
-                    c2 = 40.0
+                    c2 = dv_cb
 
                     # rule curve release
-                    flow = (
-                        preproj - ((7011.0 - lfSupply) / (7011.0 - 5717.0)) ** 1.0 * c2
-                    )
+                    flow = preproj - ((dv_t - lfSupply) / dv_min) ** dv_pb * c2
 
                     # set rc flow regime
                     sy = "RC2"
 
                 # adjust release for any ice
-                # release = round(flow - ice, 0)
-                release = engRound(flow - ice, 0)
+                release = round(flow - ice, 0)
 
                 if abs(release - lastflow) <= epsolon:
                     break
 
                 # calculate resulting water level
-                wl1 = startLev[k] + (sfSupplyNTS[k] / 10 - release) / conv
+                wl1 = ontLevelStart + (sfSupplyNTS[k] / 10 - release) / conv
                 wl2 = wl1
-                wl1 = (startLev[k] + wl2) * 0.5
-                # wl = round(wl1, 2)
-                wl = engRound(wl1, 2)
+                wl1 = (ontLevelStart + wl2) * 0.5
+                wl = round(wl1, 2)
 
                 # stability check
                 lastflow = release
@@ -940,6 +1003,8 @@ decisionVars = [
 
 for p in range(policies.shape[0]):
 
+    print(policies.loc[p, "Experiment"])
+
     # extract decision variables
     vars = policies.loc[p, decisionVars].to_list()
 
@@ -964,6 +1029,7 @@ for p in range(policies.shape[0]):
 
         # filename
         fn = filelist[f].split(".txt")[0].split("/")[-1]
+        print(fn)
 
         # create output directory
         os.makedirs(
@@ -1013,7 +1079,7 @@ for p in range(policies.shape[0]):
             data.loc[47, "kingstonLevel"] = 75.52
             data.loc[47, "stlouisFlow"] = 900
 
-        output = rcSimulation(data, v, vars)
+        output = rcSimulation(data, v, *vars)
 
         # save output
         output.to_csv(
