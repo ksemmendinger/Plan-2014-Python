@@ -28,9 +28,9 @@ for p in range(policies.shape[0]):
     elif skill == "Status Quo (AR)":
         skillCode = "sqAR"
     elif skill == "Perfect":
-        skillCode == "0"
+        skillCode = "0"
     else:
-        skillCode == skill
+        skillCode = skill
 
     # list output files for simulation
     PATH = "../simulation_model/output/" + expName + "/" + ltCode + "/" + skillCode

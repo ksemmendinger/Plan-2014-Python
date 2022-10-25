@@ -97,7 +97,7 @@ def rcSimulation(data, v, *vars):
 
     sim_st = datetime.now()
 
-    for t in range(s, timesteps):
+    for t in range(s, timesteps - 48):
 
         # quarter month
         qm = data["QM"][t]
@@ -985,6 +985,7 @@ def rcSimulation(data, v, *vars):
 
 # get policy formulations to simulate
 policies = pd.read_csv("../policy_formulations.txt", sep="\t")
+# policies = policies.loc[policies["Skill"] == "Perfect"].reset_index(drop=True)
 
 decisionVars = [
     "Above Average Rule Curve Multiplier",
@@ -1017,9 +1018,9 @@ for p in range(policies.shape[0]):
     elif skill == "Status Quo (AR)":
         skillCode = "sqAR"
     elif skill == "Perfect":
-        skillCode == "0"
+        skillCode = "0"
     else:
-        skillCode == skill
+        skillCode = skill
 
     # list hydro files in the experiment
     path = "../input/" + expName + "/hydro/*.txt"
