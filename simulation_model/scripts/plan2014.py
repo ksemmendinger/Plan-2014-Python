@@ -428,7 +428,7 @@ if v == "historic":
                         lFlow = 595 + 133.3 * (ontLevel - 74.22)
 
                     elif ontLevel <= 74.54:
-                        lFlow = 611 + 910 * (ontLevel - 74.34)
+                        lFlow = 611.1 + 910 * (ontLevel - 74.34)
 
                     elif ontLevel <= 74.70:
                         lFlow = 793 + 262.5 * (ontLevel - 74.54)
